@@ -7,7 +7,12 @@ def draw_array( X, Y ):
 
 def draw_interval( a, b, f, fmt, lbl ):
   X = np.arange( a - 2, b + 2, 1e-3 )
-  y = [ f( x ) for x in X ]
+  y = []
+  for x in X:
+    try:
+      y.append( f( x ) )
+    except ValueError:
+      y.append( None )
   plt.plot( X, y, fmt, label=lbl )
 
 def drawall( X, Y, funs ):
