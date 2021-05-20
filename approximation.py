@@ -26,7 +26,9 @@ def methods():
 def calculate_deviation( f, X, y ):
   sum = 0
   for x in X:
-    sum += ( f( x ) - y[ x ] )**2
+    tmp = ( f( x ) - y[ x ] )**2
+    if not isinstance( tmp, complex ):
+      sum += tmp
   return sum
 
 def calculate_pearson_correlation( X, Y ):
@@ -39,7 +41,10 @@ def calculate_pearson_correlation( X, Y ):
     SX_MXY_MY += ( x - _x ) * ( Y[ x ] - _y )
     SX_MXX_MX += ( x - _x ) * ( x - _x )
     SY_MYY_MY += ( Y[ x ] - _y ) * ( Y[ x ] - _y )
-  return SX_MXY_MY / sqrt( SX_MXX_MX * SY_MYY_MY )
+  try:
+    return SX_MXY_MY / sqrt( SX_MXX_MX * SY_MYY_MY )
+  except ZeroDivisionError:
+    return -1
 
 # bunch functions calculating coefficients
 def calculate_linear_approximation_coefficients( X, y ):
@@ -49,11 +54,17 @@ def calculate_linear_approximation_coefficients( X, y ):
   SY = sum( y.values() )
   SXY = 0
   for x in X:
-    SXY += x * y[ x ]
+    try:
+      SXY += x * y[ x ]
+    except KeyError:
+      SXY += 0
   d = SXX * n - SX**2
   d1 = SXY * n - SX * SY
   d2 = SXX * SY - SX * SXY
-  return ( d1 / d, d2 / d )
+  try:
+    return ( d1 / d, d2 / d )
+  except ZeroDivisionError:
+    return ( 0, 0 ) 
 
 def calculate_quadratic_approximation_coefficients( X, y ):
   n = len( X )
@@ -65,21 +76,27 @@ def calculate_quadratic_approximation_coefficients( X, y ):
   SXY = 0
   SXXY = 0
   for x in X:
-    SXY += x * y[ x ]
-    SXXY += x**2 * y[ x ]
+    try:
+      SXY += x * y[ x ]
+      SXXY += x**2 * y[ x ]
+    except KeyError:
+      SXY += 0
+      SXXY += 0
   A = numpy.array( [ [ n, SX, SXX ], [ SX, SXX, SXXX ], [ SXX, SXXX, SXXXX ] ] )
   B = numpy.array( [ SY, SXY, SXXY ] )
-  X = numpy.linalg.inv( A ).dot( B )
+  try:
+    X = numpy.linalg.inv( A ).dot( B )
+  except numpy.linalg.LinAlgError:
+    X = [ 0, 0, 0 ]
   return tuple( X )
 
 def calculate_exponential_approximation_coefficients( X, y ): 
   logY = {}
   for x in X:
-    if y[ x ] > 0:
+    if y[ x ] > 0 and x > 0:
       logY[ x ] = log( y[ x ] )
     else:
       print( f'Warning: значение функции отрицательно в точке, узел ( {x}, {y[ x ]} ) будет пропущен' )
-      logY[ x ] = 0
 
   B, A = calculate_linear_approximation_coefficients( X, logY )
   return ( exp( A ), B )
@@ -92,6 +109,7 @@ def calculate_degree_approximation_coefficients( X, y ):
       logX.append( log( x ) )
     else:
       print( f'Warning: узел ( {x}, {y[ x ]} ) будет пропущен' )
+
 
   # build logariphmed Y
   logY = {}
@@ -109,7 +127,7 @@ def calculate_logariphmic_approximation_coefficients( X, y ):
   logX = []
   Y = {}
   for x in X:
-    if x > 0:
+    if y[ x ] > 0 and x > 0:
       logX.append( log( x ) )
       Y[ log( x ) ] = y[ x ]
     else:
@@ -137,7 +155,12 @@ def exponent_lambda_generator( A, B ):
   return lambda x: A * exp( B * x )
 
 def logariphmic_lambda_generator( A, B ):
-  return lambda x: A * log( x ) + B
+  def fun( x ):
+    try:
+      return A * log( x ) + B
+    except ValueError:
+      return A * x + B
+  return fun
 
 def quadratic_lambda_generator( A0, A1, A2 ):
   return lambda x: A0 + A1 * x + A2 * x * x

@@ -24,7 +24,7 @@ def std_read_approximation_nodes_number():
     nodes_number = input( "Введите число узлов аппроксимации ( не менее 12 ): " )
     try:
       nodes_number = int( nodes_number )
-      if ( nodes_number >= 12 ):
+      if ( nodes_number >= 1 ):
         break
       else:
         print( "Узлов аппроксимации должно быть не менее 12. Попробуйте еще раз..." )
@@ -104,8 +104,10 @@ def extract_nodes():
       except ( IndexError ):
         print( f'Файл поврежден — не удалось распознать строку {input_content[ i + 1 ]}' )
         exit()
-
-    X.append( x )
+    try:
+      X.index( x )
+    except ValueError:
+      X.append( x )
     Y[ x ] = y
     print( f'Считан узел: ( {x}, {y} )' )
   return ( X, Y )
